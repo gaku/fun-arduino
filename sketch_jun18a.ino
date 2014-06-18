@@ -1,12 +1,11 @@
-int pin = 13;
+int pin = 52;
 
 void setup() {
-  pinMode(pin, OUTPUT);
-  digitalWrite(pin, HIGH);
+  DDRE = B11111111;
 }
 
 void loop() {
-  digitalWrite(pin, LOW);
-  digitalWrite(pin, HIGH);
+  PORTE = B0000000;
+  PORTE = B1111111;
 }
 
