@@ -5,7 +5,11 @@ void setup() {
 }
 
 void loop() {
-  PORTE = B0000000;
-  PORTE = B1111111;
+  while (1) {    
+    PORTE = B0000000;
+    PORTE = B0000000;
+    PORTE = B0000000;
+    PORTE = B1111111;
+  }
 }
 
