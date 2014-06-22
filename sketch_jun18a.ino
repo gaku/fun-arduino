@@ -2,6 +2,7 @@
 // 4th bit from MSB, not LSB.
 //
 int a[16];
+int Pin[16] = {A0, A1, A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15};
 
 void setup() {
   // Pin 3 for clock output
@@ -9,6 +10,7 @@ void setup() {
   
   pinMode(A0, INPUT);
 
+  // See dump at serial terminal
   Serial.begin(57600);
   Serial.println("HELLO");
 }
@@ -21,10 +23,11 @@ void loop() {
     delayMicroseconds(1);
     PORTE = B00010000;
     //delayMicroseconds(10000);
-    delay(100);
-    a[0] = digitalRead(A0);
-    a[1] = digitalRead(A1);
-    for (i = 0; i < 2; i++) {
+    delay(50);
+
+    Serial.print("ADDRESS:");
+    for (i = 15; i >= 0; i--) {
+      a[i] = digitalRead(Pin[i]);
       Serial.print(a[i]);
     }
     Serial.println();    
