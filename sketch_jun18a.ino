@@ -15,6 +15,18 @@ void setup() {
   Serial.println("HELLO");
 }
 
+void print_hex() {
+  int addr = 0;
+  int i;
+  for (i = 15; i >= 0; i--) {
+    addr <<= 1;
+    addr += a[i];
+  }
+  Serial.print("(");
+  Serial.print(addr);
+  Serial.print(")");  
+}
+
 void loop() {
   int i;
   while (1) {    
@@ -23,14 +35,15 @@ void loop() {
     delayMicroseconds(1);
     PORTE = B00010000;
     //delayMicroseconds(10000);
-    delay(50);
 
     Serial.print("ADDRESS:");
     for (i = 15; i >= 0; i--) {
       a[i] = digitalRead(Pin[i]);
-      Serial.print(a[i]);
+      Serial.print(a[i]);      
     }
+    print_hex();
     Serial.println();    
+
   }
 }
 
