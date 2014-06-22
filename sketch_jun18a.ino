@@ -1,15 +1,17 @@
-int pin = 52;
-
+// Using Arduino MEGA's pin 3 (PORT E's 4th pin).
+// 4th bit from MSB, not LSB.
+//
 void setup() {
-  DDRE = B11111111;
+  DDRE = B00010000;
 }
 
 void loop() {
   while (1) {    
-    PORTE = B0000000;
-    PORTE = B0000000;
-    PORTE = B0000000;
-    PORTE = B1111111;
+    // roughly 2usec clock
+    PORTE = B00000000;
+    delayMicroseconds(1);
+    PORTE = B00010000;
+    delayMicroseconds(1);
   }
 }
 
