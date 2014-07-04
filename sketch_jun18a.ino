@@ -3,6 +3,7 @@
 //
 // Reset Pin at Pin53
 #define RST (53)
+#define RW (51)
 
 int a[16];
 int Pin[16] = {A0, A1, A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15};
@@ -19,6 +20,7 @@ void setup() {
   }
 
   pinMode(RST, OUTPUT);
+  pinMode(RW, INPUT);  // Observing R/W pin
   
   // Setup Reset pin
   digitalWrite(RST, HIGH);
@@ -42,6 +44,19 @@ void print_hex() {
   Serial.print(buffer);
   Serial.print(")");  
 }
+
+void print_rw() {
+  int rw = digitalRead(RW);
+  Serial.print("[");
+  if (rw == 1) {
+    Serial.print("R");
+  } else {
+    Serial.print("W");
+  }
+  Serial.print("]");  
+}
+
+
 
 typedef void (*Callback) (void);
 
@@ -111,6 +126,7 @@ void loop() {
       Serial.print(a[i]);      
     }
     print_hex();
+    print_rw();
     Serial.println();
     clock_counter++;    
   }
