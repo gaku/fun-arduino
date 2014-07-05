@@ -9,6 +9,18 @@ int a[16];
 int Pin[16] = {A0, A1, A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15};
 int DataPin[8] = {30,31,32,33,34,35,36,37};
 
+// Set Arduino pins corresponds to 6502 Data bus
+void set_data_bus(int v) {
+  int b;
+  int i;
+
+  for (i = 0; i < 8; i++) {
+    b = v % 2;
+    digitalWrite(DataPin[i], b);
+    v >>= 1;
+  }
+}
+
 void setup() {
   // Pin 3 for clock output
   DDRE = B00010000;
@@ -26,14 +38,7 @@ void setup() {
     pinMode(DataPin[i], OUTPUT);
   }
   // OUTPUT $EA
-  digitalWrite(DataPin[0], LOW);  // D0: Lowest bit?
-  digitalWrite(DataPin[1], HIGH); // D1
-  digitalWrite(DataPin[2], LOW);  // D2
-  digitalWrite(DataPin[3], HIGH); // D3
-  digitalWrite(DataPin[4], LOW);  // D4
-  digitalWrite(DataPin[5], HIGH); // D5
-  digitalWrite(DataPin[6], HIGH); // D6
-  digitalWrite(DataPin[7], HIGH); // D7
+  set_data_bus(0xea);
   
   // Setup Reset pin
   digitalWrite(RST, HIGH);
@@ -43,16 +48,9 @@ void setup() {
   Serial.println("HELLO");
 }
 
-void print_hex() {
-  int addr = 0;
-  int i;
-  for (i = 15; i >= 0; i--) {
-    addr <<= 1;
-    addr += a[i];
-  }
+void print_addr(int addr) {
   char buffer[5];
-  
-  Serial.print(" (");
+  Serial.print("ADDR (");
   sprintf(buffer, "%04x", addr);
   Serial.print(buffer);
   Serial.print(")");  
@@ -69,6 +67,42 @@ void print_rw() {
   Serial.print("]");  
 }
 
+int read_address_bus() {
+  int i;
+  int addr = 0;
+  for (i = 15; i >= 0; i--) {
+    addr <<= 1;
+    addr += digitalRead(Pin[i]);
+  }
+
+  return addr;
+}
+
+void set_data_bus_for_address(int addr) {
+  int v = 0xea;
+  if (addr == 0x0000) {
+    v = 0x11;
+  } else if (addr == 0x1000) {
+    v = 0xA9; // LDA #$AA
+  } else if (addr == 0x1001) {
+    v = 0xAA; // LDA $00
+  } else if (addr == 0x1002) {
+    v = 0x85; // STA $00
+  } else if (addr == 0x1003) {
+    v = 0x00;
+  } else if (addr == 0x1004) {
+    v = 0x4C;
+  } else if (addr == 0x1005) {
+    v = 0x00;
+  } else if (addr == 0x1006) {
+    v = 0x10;
+  } else if (addr == 0xfffc) {
+    v = 0x00;
+  } else if (addr == 0xfffd) {
+    v = 0x10;
+  }
+  set_data_bus(v);
+}
 
 
 typedef void (*Callback) (void);
@@ -99,7 +133,6 @@ void cb_reset() {
 void loop() {
   int i;
 
-
   // set up test callback
   callback_at = 10;
   cb = cb_test;
@@ -121,6 +154,13 @@ void loop() {
     if (clock_counter == callback_at) {
       cb();
     }
+    // Read current bus
+    int addr = read_address_bus();
+    print_addr(addr);
+    Serial.print(" ");
+    print_rw();
+    set_data_bus_for_address(addr);
+
 
     // roughly 2usec clock
     PORTE = B00000000;
@@ -138,8 +178,6 @@ void loop() {
       a[i] = digitalRead(Pin[i]);
       Serial.print(a[i]);      
     }
-    print_hex();
-    print_rw();
     Serial.println();
     clock_counter++;    
   }
