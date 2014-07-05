@@ -48,16 +48,20 @@ void setup() {
   Serial.println("HELLO");
 }
 
-void print_addr(int addr) {
-  char buffer[5];
-  Serial.print("ADDR (");
-  sprintf(buffer, "%04x", addr);
+void print_data(int data) {
+  char buffer[3];
+  sprintf(buffer, "%02x", data);
   Serial.print(buffer);
-  Serial.print(")");  
 }
 
-void print_rw() {
-  int rw = digitalRead(RW);
+void print_addr(int addr) {
+  char buffer[5];
+  Serial.print("ADDR $");
+  sprintf(buffer, "%04x", addr);
+  Serial.print(buffer);
+}
+
+void print_rw(int rw) {
   Serial.print("[");
   if (rw == 1) {
     Serial.print("R");
@@ -67,6 +71,14 @@ void print_rw() {
   Serial.print("]");  
 }
 
+void print_state(int addr, int rw, int data) {
+    print_addr(addr);
+    Serial.print(" ");
+    print_rw(rw);
+    Serial.print(" ");
+    print_data(data);
+}
+
 int read_address_bus() {
   int i;
   int addr = 0;
@@ -74,11 +86,14 @@ int read_address_bus() {
     addr <<= 1;
     addr += digitalRead(Pin[i]);
   }
-
   return addr;
 }
 
-void set_data_bus_for_address(int addr) {
+int read_rw() {
+  return digitalRead(RW);
+}
+
+int set_data_bus_for_address(int addr) {
   int v = 0xea;
   if (addr == 0x0000) {
     v = 0x11;
@@ -102,6 +117,20 @@ void set_data_bus_for_address(int addr) {
     v = 0x10;
   }
   set_data_bus(v);
+  return v;
+}
+
+int read_data_bus() {
+  int v;
+  int i;
+  // Change to read
+  for (i = 7; i >= 0; i--) {
+    pinMode(DataPin[i], INPUT);
+    v <<= 1;
+    v += digitalRead(DataPin[i]);
+    pinMode(DataPin[i], OUTPUT);
+  }
+  return v;
 }
 
 
@@ -156,10 +185,14 @@ void loop() {
     }
     // Read current bus
     int addr = read_address_bus();
-    print_addr(addr);
-    Serial.print(" ");
-    print_rw();
-    set_data_bus_for_address(addr);
+    int rw = read_rw();
+    int data = 0;
+    if (rw == 1) {
+      data = set_data_bus_for_address(addr);
+    } else {
+      data = read_data_bus();
+    }
+    print_state(addr, rw, data);
 
 
     // roughly 2usec clock
@@ -170,14 +203,8 @@ void loop() {
     //delayMicroseconds(1000000);
     delay(100);
     
-    Serial.print("CLOCK#");
+    Serial.print(" CLOCK#");
     Serial.print(clock_counter);
-    Serial.print(" ");
-    Serial.print("ADDRESS:");
-    for (i = 15; i >= 0; i--) {
-      a[i] = digitalRead(Pin[i]);
-      Serial.print(a[i]);      
-    }
     Serial.println();
     clock_counter++;    
   }
