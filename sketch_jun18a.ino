@@ -8,8 +8,6 @@
 int a[16];
 int Pin[16] = {A0, A1, A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15};
 
-
-
 void setup() {
   // Pin 3 for clock output
   DDRE = B00010000;
@@ -79,7 +77,7 @@ void cb_reset_done() {
 void cb_reset() {
   Serial.println("Reset");
   digitalWrite(RST, LOW); 
-  callback_at = clock_counter + 3;
+  callback_at = clock_counter + 5;
   cb = cb_reset_done;  
 }
 
@@ -115,7 +113,7 @@ void loop() {
     PORTE = B00010000;
     // 1 second break
     //delayMicroseconds(1000000);
-    delay(800);
+    delay(100);
     
     Serial.print("CLOCK#");
     Serial.print(clock_counter);
