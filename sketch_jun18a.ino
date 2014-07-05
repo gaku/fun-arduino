@@ -7,6 +7,7 @@
 
 int a[16];
 int Pin[16] = {A0, A1, A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15};
+int DataPin[8] = {30,31,32,33,34,35,36,37};
 
 void setup() {
   // Pin 3 for clock output
@@ -19,6 +20,20 @@ void setup() {
 
   pinMode(RST, OUTPUT);
   pinMode(RW, INPUT);  // Observing R/W pin
+
+  // Data Pins to be OUTPUT to start with
+  for (i = 0; i < 8; i++) {
+    pinMode(DataPin[i], OUTPUT);
+  }
+  // OUTPUT $EA
+  digitalWrite(DataPin[0], LOW);  // D0: Lowest bit?
+  digitalWrite(DataPin[1], HIGH); // D1
+  digitalWrite(DataPin[2], LOW);  // D2
+  digitalWrite(DataPin[3], HIGH); // D3
+  digitalWrite(DataPin[4], LOW);  // D4
+  digitalWrite(DataPin[5], HIGH); // D5
+  digitalWrite(DataPin[6], HIGH); // D6
+  digitalWrite(DataPin[7], HIGH); // D7
   
   // Setup Reset pin
   digitalWrite(RST, HIGH);
@@ -105,7 +120,7 @@ void loop() {
     // check callback
     if (clock_counter == callback_at) {
       cb();
-    }    
+    }
 
     // roughly 2usec clock
     PORTE = B00000000;
