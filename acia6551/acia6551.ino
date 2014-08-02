@@ -5,7 +5,10 @@ context ctx;
 // Arduino Mega's digital pin#s are printed on the pcb.
 #define RESB 4
 #define PHI2 27
-#define CS0  2
+// USE pin 52 to free up pin 2
+#define CS0  52
+// Use pin 2 for IRQB(6551's pin 26)
+#define IRQB 2
 #define CS1B 3
 #define RS1 14
 #define RS0 13
@@ -22,6 +25,11 @@ context ctx;
 // typedef struct context context;
 
 int dataBusPins[] = {D0, D1, D2, D3, D4, D5, D6, D7};
+int numIrq = 0;
+
+void irqHandler() {
+  numIrq++;
+}
 
 void phi2(int state) {
   digitalWrite(PHI2, state);
@@ -53,6 +61,18 @@ void setDataBusReadWrite(boolean read) {
   }
 }
 
+void writeCharToDataBus(char chr) {
+  for (int i = 0; i < 8; i++) {
+    int bit = chr & (1 << i);
+    Serial.print("bit");
+    Serial.print(i);
+    Serial.print(":");
+    Serial.print(bit);
+    digitalWrite(dataBusPins[i], bit);
+  }
+}
+
+
 void setup() {
   Serial.begin(57600);
   Serial.println("START");
@@ -63,6 +83,7 @@ void setup() {
   pinMode(RS1, OUTPUT);
   pinMode(RS0, OUTPUT);
   pinMode(RWB, OUTPUT);
+  pinMode(IRQB, INPUT);
   
   setDataBusReadWrite(true);
   phi2(HIGH);
@@ -141,11 +162,29 @@ void setup() {
   readDataBus(&ctx);
   phi2(LOW);
   dumpDataBus(&ctx);
+
+  attachInterrupt(0, irqHandler, FALLING);
+
+  // Write Transmit Data Register
+  // RS1 - L
+  // RS0 - L
+  // RWB - L (write)
+  digitalWrite(RS1, LOW);
+  digitalWrite(RS0, LOW);
+  digitalWrite(RWB, LOW);
+  writeCharToDataBus('A');   // NOT WORKING
+  phi2(HIGH);
+  phi2(LOW);
+  
+  // TxD is not transmitting anything.
+  // XTLO is actually almost always 5V and not resonating?
+  
 }
 
 void loop() {
   phi2(HIGH);
   phi2(LOW);
+  Serial.println(numIrq);
 }
 
 
