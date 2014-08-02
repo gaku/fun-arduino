@@ -1,3 +1,7 @@
+#include "acia6551.h"
+
+context ctx;
+
 // Arduino Mega's digital pin#s are printed on the pcb.
 #define RESB 4
 #define PHI2 27
@@ -15,10 +19,26 @@
 #define D1  19
 #define D0  18
 
+// typedef struct context context;
+
+int dataBusPins[] = {D0, D1, D2, D3, D4, D5, D6, D7};
 
 void phi2(int state) {
   digitalWrite(PHI2, state);
   delayMicroseconds(1);
+}
+
+void readDataBus(context* ctx) { 
+  for (int i = 0; i < 8; i++) {
+    ctx->dataBus[i] = digitalRead(dataBusPins[i]);
+  }
+}
+
+void dumpDataBus(context* ctx) {
+  for (int i = 7; i >= 0; i--) {
+    Serial.print(ctx->dataBus[i]);
+  }
+  Serial.println("");
 }
 
 void setup() {
@@ -67,23 +87,10 @@ void setup() {
   digitalWrite(RWB, HIGH);
   phi2(HIGH);
   // READ DATA BUS
-  int vd7 = digitalRead(D7);
-  int vd6 = digitalRead(D6);
-  int vd5 = digitalRead(D5);
-  int vd4 = digitalRead(D4);
-  int vd3 = digitalRead(D3);
-  int vd2 = digitalRead(D2);
-  int vd1 = digitalRead(D1);
-  int vd0 = digitalRead(D0);
+  readDataBus(&ctx);
   phi2(LOW);
-  Serial.print(vd7);
-  Serial.print(vd6);
-  Serial.print(vd5);
-  Serial.print(vd4);
-  Serial.print(vd3);
-  Serial.print(vd2);
-  Serial.print(vd1);
-  Serial.println(vd0);
+  dumpDataBus(&ctx);
+
 }
 
 void loop() {
