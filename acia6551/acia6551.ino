@@ -41,6 +41,18 @@ void dumpDataBus(context* ctx) {
   Serial.println("");
 }
 
+void setDataBusReadWrite(boolean read) {
+  if (read) {
+    for (int i = 0; i < 8; i++) {
+      pinMode(dataBusPins[i], INPUT);
+    }
+  } else {
+    for (int i = 0; i < 8; i++) {
+      pinMode(dataBusPins[i], OUTPUT);
+    }
+  }
+}
+
 void setup() {
   Serial.begin(57600);
   Serial.println("START");
@@ -52,15 +64,7 @@ void setup() {
   pinMode(RS0, OUTPUT);
   pinMode(RWB, OUTPUT);
   
-  pinMode(D7, INPUT);
-  pinMode(D6, INPUT);
-  pinMode(D5, INPUT);
-  pinMode(D4, INPUT);
-  pinMode(D3, INPUT);
-  pinMode(D2, INPUT);
-  pinMode(D1, INPUT);
-  pinMode(D0, INPUT);
-  
+  setDataBusReadWrite(true);
   phi2(HIGH);
 
   // Reset 6551
@@ -90,7 +94,53 @@ void setup() {
   readDataBus(&ctx);
   phi2(LOW);
   dumpDataBus(&ctx);
-
+  
+  // Read Control Register
+  // RS1 - H
+  // RS0 - H
+  // RWB - H
+  digitalWrite(RS1, HIGH);
+  digitalWrite(RS0, HIGH);
+  digitalWrite(RWB, HIGH);
+  
+  phi2(HIGH);
+  // READ DATA BUS
+  readDataBus(&ctx);
+  phi2(LOW);
+  dumpDataBus(&ctx);
+  
+  // Set control register
+  // RWB - L (write)
+  digitalWrite(RWB, LOW);
+  setDataBusReadWrite(false);
+  // Baud Rate 9600.
+  digitalWrite(D0, LOW);
+  digitalWrite(D1, HIGH);
+  digitalWrite(D2, HIGH);
+  digitalWrite(D3, HIGH);
+  // Receiver Clock source - Baud rate
+  digitalWrite(D4, HIGH);
+  // Word length 8
+  digitalWrite(D5, LOW);
+  digitalWrite(D6, LOW);
+  // Stop bit 1
+  digitalWrite(D7, LOW);
+  phi2(HIGH);
+  phi2(LOW);
+  
+  // Read Control Register
+  // RS1 - H
+  // RS0 - H
+  // RWB - H
+  digitalWrite(RS1, HIGH);
+  digitalWrite(RS0, HIGH);
+  digitalWrite(RWB, HIGH);
+  
+  phi2(HIGH);
+  // READ DATA BUS
+  readDataBus(&ctx);
+  phi2(LOW);
+  dumpDataBus(&ctx);
 }
 
 void loop() {
