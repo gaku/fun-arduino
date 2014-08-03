@@ -25,8 +25,6 @@ context ctx;
 #define WRITE false
 #define READ  true
 
-// typedef struct context context;
-
 int dataBusPins[] = {D0, D1, D2, D3, D4, D5, D6, D7};
 int numIrq = 0;
 
@@ -39,6 +37,7 @@ void phi2(int state) {
   delayMicroseconds(1);
 }
 
+// Read data bus pin states and store in context.
 void readDataBus(context* ctx) { 
   for (int i = 0; i < 8; i++) {
     ctx->dataBus[i] = digitalRead(dataBusPins[i]);
@@ -70,10 +69,23 @@ void writeCharToDataBus(char chr) {
   Serial.print("Write char:");
   for (int i = 0; i < 8; i++) {
     int bit = chr & (1 << i);
-    Serial.print(bit);
+    if (bit > 0) {
+      Serial.print(1);
+    } else {
+      Serial.print(0);
+    }
     digitalWrite(dataBusPins[i], bit);
   }
   Serial.println("");
+}
+
+void readStatusRegister() {
+  setDataBusReadWrite(READ);
+  // wait 200ns after set to Read
+  digitalWrite(RS1, LOW);
+  digitalWrite(RS0, HIGH);
+  delay(1); // 1ms
+  readDataBus(&ctx);
 }
 
 void dumpStatusRegister() {
@@ -81,14 +93,7 @@ void dumpStatusRegister() {
   // RS1 - L
   // RS0 - H
   // RWB - H
-  phi2(LOW);
-  digitalWrite(RS1, LOW);
-  digitalWrite(RS0, HIGH);
-  setDataBusReadWrite(READ);
-  phi2(HIGH);
-  // READ DATA BUS
-  readDataBus(&ctx);
-  phi2(LOW);
+  readStatusRegister();
   Serial.print("STATUS:");
   dumpDataBus(&ctx);
 }
@@ -169,9 +174,10 @@ void setup() {
   // READ DATA BUS
   readDataBus(&ctx);
   phi2(LOW);
+  Serial.print("CONTROL:");
   dumpDataBus(&ctx);
 
-  attachInterrupt(0, irqHandler, FALLING);
+  //attachInterrupt(0, irqHandler, FALLING);
 
   Serial.print("after setting control register:");
   dumpStatusRegister();
@@ -192,24 +198,8 @@ void setup() {
   digitalWrite(D0, HIGH);  // Data terminal ready (/DTR low)
   phi2(HIGH);
   phi2(LOW);
-
-  // Write Transmit Data Register
-  // RS1 - L
-  // RS0 - L
-  // RWB - L (write)
-  digitalWrite(RS1, LOW);
-  digitalWrite(RS0, LOW);
-  digitalWrite(RWB, LOW);
-  writeCharToDataBus('A');   // NOT WORKING
-  phi2(HIGH);
-  phi2(LOW);
+  Serial.println("Wrote Command Register");
   
-  // TxD is not transmitting anything.
-  dumpStatusRegister();
-  
-}
-
-void loop() {
   // Write Transmit Data Register
   // RS1 - L
   // RS0 - L
@@ -217,10 +207,41 @@ void loop() {
   digitalWrite(RS1, LOW);
   digitalWrite(RS0, LOW);
   setDataBusReadWrite(WRITE);
-  writeCharToDataBus('A');
+  writeCharToDataBus('*');
   phi2(HIGH);
   phi2(LOW);
+  
+  // TxD is not transmitting anything.
   dumpStatusRegister();
+  for (int i = 0; i < 500; i++) {
+    readStatusRegister();
+    if (ctx.dataBus[4] == 1) {
+      // Register full
+      Serial.println("==================FULL");
+    }
+    digitalWrite(RS1, LOW);
+    digitalWrite(RS0, LOW);
+    setDataBusReadWrite(WRITE);
+    writeCharToDataBus('A');
+    phi2(HIGH);
+    phi2(LOW);
+    dumpStatusRegister();
+  }
+}
+
+void loop() {
+    readStatusRegister();
+    if (ctx.dataBus[4] == 1) {
+      // Register full
+      Serial.println("==================FULL");
+    }
+    digitalWrite(RS1, LOW);
+    digitalWrite(RS0, LOW);
+    setDataBusReadWrite(WRITE);
+    writeCharToDataBus('A');
+    phi2(HIGH);
+    phi2(LOW);
+    dumpStatusRegister();
 }
 
 
