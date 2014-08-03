@@ -28,6 +28,9 @@ context ctx;
 // typedef struct context context;
 
 int dataBusPins[] = {D0, D1, D2, D3, D4, D5, D6, D7};
+char data[] = "** Hello from 65C51 **";
+int data_len;
+
 int numIrq = 0;
 
 void irqHandler() {
@@ -94,6 +97,8 @@ void dumpStatusRegister() {
 }
 
 void setup() {
+  data_len = strlen(data);
+  
   Serial.begin(57600);
   Serial.println("START");
   pinMode(RESB, OUTPUT);
@@ -217,9 +222,13 @@ void loop() {
   digitalWrite(RS1, LOW);
   digitalWrite(RS0, LOW);
   setDataBusReadWrite(WRITE);
-  writeCharToDataBus('A');
-  phi2(HIGH);
-  phi2(LOW);
+
+  for (int i = 0; i < data_len; i++) {
+    writeCharToDataBus(data[i]);
+    phi2(HIGH);
+    phi2(LOW);
+  }
+
   dumpStatusRegister();
 }
 
