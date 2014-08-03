@@ -22,6 +22,9 @@ context ctx;
 #define D1  19
 #define D0  18
 
+#define WRITE false
+#define READ  true
+
 // typedef struct context context;
 
 int dataBusPins[] = {D0, D1, D2, D3, D4, D5, D6, D7};
@@ -51,10 +54,12 @@ void dumpDataBus(context* ctx) {
 
 void setDataBusReadWrite(boolean read) {
   if (read) {
+    digitalWrite(RWB, HIGH);
     for (int i = 0; i < 8; i++) {
       pinMode(dataBusPins[i], INPUT);
     }
   } else {
+    digitalWrite(RWB, LOW);
     for (int i = 0; i < 8; i++) {
       pinMode(dataBusPins[i], OUTPUT);
     }
@@ -62,16 +67,31 @@ void setDataBusReadWrite(boolean read) {
 }
 
 void writeCharToDataBus(char chr) {
+  Serial.print("Write char:");
   for (int i = 0; i < 8; i++) {
     int bit = chr & (1 << i);
-    Serial.print("bit");
-    Serial.print(i);
-    Serial.print(":");
     Serial.print(bit);
     digitalWrite(dataBusPins[i], bit);
   }
+  Serial.println("");
 }
 
+void dumpStatusRegister() {
+  // Read status register
+  // RS1 - L
+  // RS0 - H
+  // RWB - H
+  phi2(LOW);
+  digitalWrite(RS1, LOW);
+  digitalWrite(RS0, HIGH);
+  setDataBusReadWrite(READ);
+  phi2(HIGH);
+  // READ DATA BUS
+  readDataBus(&ctx);
+  phi2(LOW);
+  Serial.print("STATUS:");
+  dumpDataBus(&ctx);
+}
 
 void setup() {
   Serial.begin(57600);
@@ -85,7 +105,7 @@ void setup() {
   pinMode(RWB, OUTPUT);
   pinMode(IRQB, INPUT);
   
-  setDataBusReadWrite(true);
+  setDataBusReadWrite(READ);
   phi2(HIGH);
 
   // Reset 6551
@@ -103,18 +123,8 @@ void setup() {
   digitalWrite(CS0, HIGH);
   digitalWrite(CS1B, LOW);
   
-  // Read status register
-  // RS1 - L
-  // RS0 - H
-  // RWB - H
-  digitalWrite(RS1, LOW);
-  digitalWrite(RS0, HIGH);
-  digitalWrite(RWB, HIGH);
-  phi2(HIGH);
-  // READ DATA BUS
-  readDataBus(&ctx);
-  phi2(LOW);
-  dumpDataBus(&ctx);
+  // See Status Register immediately after a reset.
+  dumpStatusRegister();
   
   // Read Control Register
   // RS1 - H
@@ -131,9 +141,7 @@ void setup() {
   dumpDataBus(&ctx);
   
   // Set control register
-  // RWB - L (write)
-  digitalWrite(RWB, LOW);
-  setDataBusReadWrite(false);
+  setDataBusReadWrite(WRITE);
   // Baud Rate 9600.
   digitalWrite(D0, LOW);
   digitalWrite(D1, HIGH);
@@ -155,7 +163,7 @@ void setup() {
   // RWB - H
   digitalWrite(RS1, HIGH);
   digitalWrite(RS0, HIGH);
-  digitalWrite(RWB, HIGH);
+  setDataBusReadWrite(READ);
   
   phi2(HIGH);
   // READ DATA BUS
@@ -164,6 +172,26 @@ void setup() {
   dumpDataBus(&ctx);
 
   attachInterrupt(0, irqHandler, FALLING);
+
+  Serial.print("after setting control register:");
+  dumpStatusRegister();
+  
+  // Write Command Register
+  // RS1 - H
+  // RS0 - L
+  digitalWrite(RS1, HIGH);
+  digitalWrite(RS0, LOW);
+  setDataBusReadWrite(WRITE);
+  digitalWrite(D7, LOW);
+  digitalWrite(D6, LOW);
+  digitalWrite(D5, LOW);  // Parity mode disabled.
+  digitalWrite(D4, LOW);  // Receiver normal mode
+  digitalWrite(D3, HIGH);  // /RTS = low, transmit interrupt disabled
+  digitalWrite(D2, LOW);
+  digitalWrite(D1, HIGH);  // IRQ disabled (receiver)
+  digitalWrite(D0, HIGH);  // Data terminal ready (/DTR low)
+  phi2(HIGH);
+  phi2(LOW);
 
   // Write Transmit Data Register
   // RS1 - L
@@ -177,14 +205,22 @@ void setup() {
   phi2(LOW);
   
   // TxD is not transmitting anything.
-  // XTLO is actually almost always 5V and not resonating?
+  dumpStatusRegister();
   
 }
 
 void loop() {
+  // Write Transmit Data Register
+  // RS1 - L
+  // RS0 - L
+  // RWB - L (write)
+  digitalWrite(RS1, LOW);
+  digitalWrite(RS0, LOW);
+  setDataBusReadWrite(WRITE);
+  writeCharToDataBus('A');
   phi2(HIGH);
   phi2(LOW);
-  Serial.println(numIrq);
+  dumpStatusRegister();
 }
 
 
